@@ -62,7 +62,7 @@ public class PlayerScript : MonoBehaviour
 
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (collision.collider.name == "Ground")
+        if (collision.collider.name == "Ground" || collision.collider.CompareTag("Platform"))
         {
             //print("Ground");
             isGrounded = collision.collider.bounds.min.y < transform.position.y;
