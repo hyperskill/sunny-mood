@@ -9,6 +9,7 @@
   </component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$PROJECT_DIR$/Assets/DoorScript.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Assets/gemScript.cs" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
@@ -76,7 +77,8 @@
       <workItem from="1653786867607" duration="1003000" />
       <workItem from="1653910336527" duration="1975000" />
       <workItem from="1653996207774" duration="2455000" />
-      <workItem from="1654039853727" duration="1324000" />
+      <workItem from="1654039853727" duration="2511000" />
+      <workItem from="1654046953365" duration="1845000" />
     </task>
     <servers />
   </component>
