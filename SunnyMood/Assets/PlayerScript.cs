@@ -29,9 +29,11 @@ public class PlayerScript : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            SceneManager.LoadScene("Main Menu");
+        }
 
-        
-        
         isJumpPressed = Input.GetButtonDown("Jump");
         if (isJumpPressed && isGrounded)
         {
