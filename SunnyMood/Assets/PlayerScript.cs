@@ -8,6 +8,7 @@ using UnityEngine.Serialization;
 public class PlayerScript : MonoBehaviour
 {
     public Rigidbody2D rb;
+    public AudioSource jumpSound; 
 
     public SpriteRenderer sr;
     //[FormerlySerializedAs("_collider")] public BoxCollider2D collider;
@@ -38,6 +39,7 @@ public class PlayerScript : MonoBehaviour
         if (isJumpPressed && isGrounded)
         {
             //print("jump");
+            jumpSound.Play(0);
             isGrounded = false;
             animator.SetBool(IsJumping, !isGrounded);
             rb.AddForce(new Vector2(0, 300));

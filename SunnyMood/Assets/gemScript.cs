@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class gemScript : MonoBehaviour
 {
+    public AudioSource gemPickupSound;
+    
     // Start is called before the first frame update
     void Start()
     {
@@ -21,6 +23,8 @@ public class gemScript : MonoBehaviour
     {
         if (other.name == "Player")
         {
+            AudioSource.PlayClipAtPoint(gemPickupSound.clip, Vector3.zero);
+            //gemPickupSound.Play(0);
             Destroy(gameObject);
         }
     }
