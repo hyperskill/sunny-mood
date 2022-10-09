@@ -5,7 +5,8 @@ using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.Tilemaps;
 
-public class A_ObjectsTest
+[Description("The Sun is the giver of life."), Category("1")]
+public class Stage1_Tests
 {
     private GameObject background,
         player,
@@ -14,9 +15,10 @@ public class A_ObjectsTest
         cameraObj,
         levelend;
 
+    private bool exist;
     private SpriteRenderer playerSR, backgroundSR, levelEndSR;
     private TilemapRenderer groundTMR;
-    
+
     [UnityTest, Order(1)]
     public IEnumerator ObjectsExistCheck()
     {
@@ -25,54 +27,58 @@ public class A_ObjectsTest
         {
             Assert.Fail("Level 1: Please, do not remove \"Test\" layer, it's existance necessary for tests");
         }
-        
+
         Time.timeScale = 0;
 
         if (!Application.CanStreamedLevelBeLoaded("Level 1"))
         {
             Assert.Fail("Level 1: \"Level 1\" scene is misspelled or was not added to build settings");
         }
+
         yield return null;
 
         SceneManager.LoadScene("Level 1");
         yield return null;
-        
-        background = PMHelper.Exist("Background");
-        player = PMHelper.Exist("Player");
-        levelend = PMHelper.Exist("LevelEnd");
-        if (!background)
+
+        (background, exist) = PMHelper.Exist("Background");
+        if (!exist)
             Assert.Fail("Level 1: There should be a background, named \"Background\" on scene");
-        if (!player)
+
+        (player, exist) = PMHelper.Exist("Player");
+        if (!exist)
             Assert.Fail("Level 1: There should be a player, named \"Player\" on scene");
-        if (!levelend)
+
+        (levelend, exist) = PMHelper.Exist("LevelEnd");
+        if (!exist)
             Assert.Fail("Level 1: There should be a level end, named \"LevelEnd\" on scene");
     }
-    
+
     [UnityTest, Order(2)]
     public IEnumerator BasicObjectComponentsCheck()
     {
         backgroundSR = PMHelper.Exist<SpriteRenderer>(background);
-        if(!backgroundSR||!backgroundSR.enabled)
+        if (!backgroundSR || !backgroundSR.enabled)
             Assert.Fail("Level 1: There is no <SpriteRenderer> component on \"Background\" object or it is disabled");
-        if(!backgroundSR.sprite)
+        if (!backgroundSR.sprite)
             Assert.Fail("Level 1: There should be sprite, attached to \"Background\"'s <SpriteRenderer>");
-        
+
         playerSR = PMHelper.Exist<SpriteRenderer>(player);
-        if(!playerSR||!playerSR.enabled)
+        if (!playerSR || !playerSR.enabled)
             Assert.Fail("Level 1: There is no <SpriteRenderer> component on \"Player\" object or it is disabled");
-        if(!playerSR.sprite)
+        if (!playerSR.sprite)
             Assert.Fail("Level 1: There should be sprite, attached to \"Player\"'s <SpriteRenderer>");
-        
+
         Collider2D playerCL = PMHelper.Exist<Collider2D>(player);
         if (!playerCL || !playerCL.enabled)
         {
             Assert.Fail("Level 1: Player should have assigned enabled <Collider2D> component");
         }
+
         if (playerCL.isTrigger)
         {
             Assert.Fail("Level 1: Player's <Collider2D> component should not be triggerable");
         }
-        
+
         Rigidbody2D playerRb = PMHelper.Exist<Rigidbody2D>(player);
         if (!playerRb)
         {
@@ -83,40 +89,46 @@ public class A_ObjectsTest
         {
             Assert.Fail("Level 1: Player's <Rigidbody2D> component should be Dynamic");
         }
+
         if (!playerRb.simulated)
         {
             Assert.Fail("Level 1: Player's <Rigidbody2D> component should be simulated");
         }
-        if (playerRb.gravityScale<=0)
+
+        if (playerRb.gravityScale <= 0)
         {
             Assert.Fail("Level 1: Player's <Rigidbody2D> component should be affected by gravity, " +
                         "so it's Gravity Scale parameter should not be less or equal to 0");
         }
+
         if (playerRb.interpolation != RigidbodyInterpolation2D.None)
         {
             Assert.Fail("Level 1: Do not change interpolation of Player's <Rigidbody2D> component. Set it as None");
         }
+
         if (playerRb.constraints != RigidbodyConstraints2D.FreezeRotation)
         {
-            Assert.Fail("Level 1: Player's <Rigidbody2D> component's constraints should be freezed by rotation and unfreezed by position");
+            Assert.Fail(
+                "Level 1: Player's <Rigidbody2D> component's constraints should be freezed by rotation and unfreezed by position");
         }
-        
+
         levelEndSR = PMHelper.Exist<SpriteRenderer>(levelend);
-        if(!levelEndSR||!levelEndSR.enabled)
+        if (!levelEndSR || !levelEndSR.enabled)
             Assert.Fail("Level 1: There is no <SpriteRenderer> component on \"LevelEnd\" object or it is disabled");
-        if(!levelEndSR.sprite)
+        if (!levelEndSR.sprite)
             Assert.Fail("Level 1: There should be sprite, attached to \"LevelEnd\"'s <SpriteRenderer>");
-        
+
         Collider2D levelEndCL = PMHelper.Exist<Collider2D>(levelend);
         if (!levelEndCL || !levelEndCL.enabled)
         {
             Assert.Fail("Level 1: \"LevelEnd\" object should have an assigned enabled <Collider2D> component");
         }
+
         if (!levelEndCL.isTrigger)
         {
             Assert.Fail("Level 1: \"LevelEnd\"'s <Collider2D> component should be triggerable");
         }
-        
+
         yield return null;
     }
 
@@ -124,44 +136,47 @@ public class A_ObjectsTest
     public IEnumerator GridCheck()
     {
         yield return null;
-        grid = PMHelper.Exist("Grid");
-        ground = PMHelper.Exist("Ground");
-        if (!grid)
+        (grid, exist) = PMHelper.Exist("Grid");
+        if (!exist)
         {
             Assert.Fail("Level 1: There should be a tilemap grid, named \"Grid\" on scene");
         }
+
+        (ground, exist) = PMHelper.Exist("Ground");
         if (!ground)
         {
             Assert.Fail("Level 1: There should be a ground tilemap, named \"Ground\" on scene");
         }
     }
-    
+
     [UnityTest, Order(4)]
     public IEnumerator BasicGridComponentsCheck()
     {
         yield return null;
         Grid gridGR = PMHelper.Exist<Grid>(grid);
-        if(!gridGR)
+        if (!gridGR)
             Assert.Fail("Level 1: There should be a <Grid> component on \"Grid\"'s object to use tilemaps");
-        if(gridGR.cellLayout != GridLayout.CellLayout.Rectangle)
+        if (gridGR.cellLayout != GridLayout.CellLayout.Rectangle)
             Assert.Fail("Level 1: \"Grid\"'s <Grid> component should have Rectangle layout");
-        if(gridGR.cellSwizzle != GridLayout.CellSwizzle.XYZ)
+        if (gridGR.cellSwizzle != GridLayout.CellSwizzle.XYZ)
             Assert.Fail("Level 1: \"Grid\"'s <Grid> component should have XYZ swizzle");
 
         Tilemap groundTM = PMHelper.Exist<Tilemap>(ground);
         groundTMR = PMHelper.Exist<TilemapRenderer>(ground);
-        if(!groundTM)
+        if (!groundTM)
             Assert.Fail("Level 1: There should be a <Tilemap> component on \"Ground\"'s object to use tilemaps");
-        if(!groundTMR)
-            Assert.Fail("Level 1: There should be a <TilemapRenderer> component on \"Ground\"'s object to view created tilemaps");
-        if(groundTM.size.x <= 0 || groundTM.size.y <= 0)
+        if (!groundTMR)
+            Assert.Fail(
+                "Level 1: There should be a <TilemapRenderer> component on \"Ground\"'s object to view created tilemaps");
+        if (groundTM.size.x <= 0 || groundTM.size.y <= 0)
             Assert.Fail("Level 1: There are no added tiles to \"Ground\"'s tilemap");
-        
+
         Collider2D groundCL = PMHelper.Exist<Collider2D>(ground);
         if (!groundCL || !groundCL.enabled)
         {
             Assert.Fail("Level 1: \"Ground\" object should have an assigned enabled <Collider2D> component");
         }
+
         if (groundCL.isTrigger)
         {
             Assert.Fail("Level 1: \"Ground\"'s <Collider2D> component should not be triggerable");
@@ -172,12 +187,12 @@ public class A_ObjectsTest
     public IEnumerator CameraCheck()
     {
         yield return null;
-        cameraObj = PMHelper.Exist("Main Camera");
-        if(!cameraObj) 
+        (cameraObj, exist) = PMHelper.Exist("Main Camera");
+        if (!exist)
             Assert.Fail("Level 1: There should be a camera, named \"Main Camera\" on scene");
-        
+
         Camera camera = PMHelper.Exist<Camera>(cameraObj);
-        if(!camera)
+        if (!camera)
             Assert.Fail("Level 1: \"Main Camera\"'s object should have an attached <Camera> component");
 
         if (!PMHelper.CheckVisibility(camera, player.transform, 2))
@@ -185,18 +200,20 @@ public class A_ObjectsTest
         if (!PMHelper.CheckVisibility(camera, background.transform, 2))
             Assert.Fail("Level 1: Background's object should be in a camera view");
     }
-    
+
     [UnityTest, Order(6)]
     public IEnumerator ChildrenCheck()
     {
         yield return null;
-        if(!PMHelper.Child(background,cameraObj))
-            Assert.Fail("Level 1: \"Background\"'s object should be a child of \"Main Camera\" object in order to move" +
-                        " camera with background, so that the background will be always in the camera view");
-        if(!PMHelper.Child(ground,grid))
-            Assert.Fail("Level 1: \"Ground\"'s object should be a child of \"Grid\" object, because tilemap's should be a child of grid!");
+        if (!PMHelper.Child(background, cameraObj))
+            Assert.Fail(
+                "Level 1: \"Background\"'s object should be a child of \"Main Camera\" object in order to move" +
+                " camera with background, so that the background will be always in the camera view");
+        if (!PMHelper.Child(ground, grid))
+            Assert.Fail(
+                "Level 1: \"Ground\"'s object should be a child of \"Grid\" object, because tilemap's should be a child of grid!");
     }
-    
+
     [UnityTest, Order(7)]
     public IEnumerator SortingCheck()
     {
@@ -209,12 +226,14 @@ public class A_ObjectsTest
                         "Set all the <SpriteRenderer>s on the same sorting layer. To order visibility you should change their" +
                         "\"Order in layer\" property");
         }
-        bool correctSort = 
-            backgroundSR.sortingOrder<levelEndSR.sortingOrder && 
-            levelEndSR.sortingOrder<groundTMR.sortingOrder && 
-            groundTMR.sortingOrder<playerSR.sortingOrder;
-        if(!correctSort)
-            Assert.Fail("Level 1: Order in layers should be placed in correct order: Background < LevelEnd < Ground < Player!");
+
+        bool correctSort =
+            backgroundSR.sortingOrder < levelEndSR.sortingOrder &&
+            levelEndSR.sortingOrder < groundTMR.sortingOrder &&
+            groundTMR.sortingOrder < playerSR.sortingOrder;
+        if (!correctSort)
+            Assert.Fail(
+                "Level 1: Order in layers should be placed in correct order: Background < LevelEnd < Ground < Player!");
     }
 
     [UnityTest, Order(8)]
