@@ -1,7 +1,6 @@
 using System.Collections;
 using NUnit.Framework;
 using UnityEngine.TestTools;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -20,49 +19,71 @@ public class Stage5_2_Tests
     [UnityTest, Order(0)]
     public IEnumerator NotMovingWithoutInputCheck()
     {
-        Time.timeScale = 0;
-        PMHelper.TurnCollisions(false);
+        PMHelper.TurnCollisions(true);
+        
+        if (!Application.CanStreamedLevelBeLoaded("Level 3"))
+        {
+            Assert.Fail("\"Level 3\" scene is misspelled or was not added to build settings");
+        }
+        
         SceneManager.LoadScene("Level 3");
-        yield return null;
 
-        GameObject helperObj = new GameObject();
-        StageHelper helper = helperObj.AddComponent<StageHelper>();
-        yield return null;
-        helper.RemovePlatforms();
-        helper.RemoveEnemies();
-        yield return null;
+        float start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            SceneManager.GetActiveScene().name == "Level 3" || (Time.unscaledTime - start) * Time.timeScale > 1);
+        if (SceneManager.GetActiveScene().name != "Level 3")
+        {
+            Assert.Fail("\"Level 3\" scene can't be loaded");
+        }
+
+        if (PMHelper.CheckTagExistance("Platform"))
+        {
+            foreach (GameObject platform in GameObject.FindGameObjectsWithTag("Platform"))
+            {
+                GameObject.Destroy(platform);
+            }
+            start = Time.unscaledTime;
+            yield return new WaitUntil(() =>
+                GameObject.FindGameObjectsWithTag("Platform").Length!=0 || (Time.unscaledTime - start) * Time.timeScale > 1);
+        }
+        if (PMHelper.CheckTagExistance("Enemy"))
+        {
+            foreach (GameObject platform in GameObject.FindGameObjectsWithTag("Enemy"))
+            {
+                GameObject.Destroy(platform);
+            }
+            start = Time.unscaledTime;
+            yield return new WaitUntil(() =>
+                GameObject.FindGameObjectsWithTag("Enemy").Length!=0 || (Time.unscaledTime - start) * Time.timeScale > 1);
+        }
 
         levelEnd = GameObject.Find("LevelEnd");
         levelEndCl = PMHelper.Exist<Collider2D>(levelEnd);
         levelEndCl.enabled = false;
-        PMHelper.TurnCollisions(true);
 
         player = GameObject.Find("Player");
-        yield return null;
         playerT = player.transform;
         playerCl = PMHelper.Exist<Collider2D>(player);
-        yield return null;
 
         ground = GameObject.Find("Ground");
-        yield return null;
         groundCl = PMHelper.Exist<Collider2D>(ground);
-        yield return null;
 
         Time.timeScale = 10;
 
-        float start = Time.unscaledTime;
+        start = Time.unscaledTime;
         yield return new WaitUntil(() =>
             playerCl.IsTouching(groundCl) || (Time.unscaledTime - start) * Time.timeScale > 5);
         if ((Time.unscaledTime - start) * Time.timeScale >= 5)
         {
             Assert.Fail(
-                "Level 3: In some time after the scene was loaded \"Player\"'s collider should be \"touching\" \"Ground\"'s collider" +
-                ". But after 5 seconds of game-time, that didn't happen");
+                "Level 3: In some time after the scene was loaded \"Player\"'s collider should be touching \"Ground\"'s collider");
         }
 
         yield return new WaitForSeconds(1);
         Vector3 startPos = playerT.position;
-        yield return null;
+        start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            startPos != playerT.position || (Time.unscaledTime - start) * Time.timeScale > 1);
         if (startPos != playerT.position)
         {
             Assert.Fail("Level 3: \"Player\"'s position should not change if there were no input provided");
@@ -74,21 +95,24 @@ public class Stage5_2_Tests
     {
         Vector3 posStart = playerT.position;
         VInput.KeyDown(KeyCode.A);
-        yield return null;
+        float start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            posStart != playerT.position || (Time.unscaledTime - start) * Time.timeScale > 3);
+        if (posStart == playerT.position)
+        {
+            Assert.Fail("Level 3: When the A-key is pressed \"Player\"'s position should change");
+        }
         VInput.KeyUp(KeyCode.A);
-        yield return null;
         Vector3 posEnd = player.transform.position;
+        
         if (posEnd.x >= posStart.x)
         {
             Assert.Fail("Level 3: When the A-key is pressed X-axis of \"Player\"'s object should decrease");
         }
-
-        if (posEnd.y != posStart.y || posEnd.z != posStart.z)
+        if (Mathf.Abs(posEnd.y - posStart.y)>=0.01f || Mathf.Abs(posEnd.z - posStart.z)>=0.01f)
         {
             Assert.Fail("Level 3: When the A-key is pressed y-axis and z-axis should not change");
         }
-
-        yield return null;
     }
 
     [UnityTest, Order(2)]
@@ -96,21 +120,24 @@ public class Stage5_2_Tests
     {
         Vector3 posStart = playerT.position;
         VInput.KeyDown(KeyCode.D);
-        yield return null;
+        float start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            posStart != playerT.position || (Time.unscaledTime - start) * Time.timeScale > 3);
+        if (posStart == playerT.position)
+        {
+            Assert.Fail("Level 3: When the D-key is pressed \"Player\"'s position should change");
+        }
         VInput.KeyUp(KeyCode.D);
-        yield return null;
         Vector3 posEnd = player.transform.position;
+        
         if (posEnd.x <= posStart.x)
         {
             Assert.Fail("Level 3: When the D-key is pressed X-axis of \"Player\"'s object should increase");
         }
-
-        if (posEnd.y != posStart.y || posEnd.z != posStart.z)
+        if (Mathf.Abs(posEnd.y - posStart.y)>=0.01f || Mathf.Abs(posEnd.z - posStart.z)>=0.01f)
         {
             Assert.Fail("Level 3: When the D-key is pressed y-axis and z-axis should not change");
         }
-
-        yield return null;
     }
 
     [UnityTest, Order(3)]
@@ -118,28 +145,35 @@ public class Stage5_2_Tests
     {
         playerRB = PMHelper.Exist<Rigidbody2D>(player);
         playerRB.constraints = RigidbodyConstraints2D.FreezeAll;
+        float start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            playerRB.constraints == RigidbodyConstraints2D.FreezeAll || (Time.unscaledTime - start) * Time.timeScale > 1);
         Vector3 posStart = playerT.position;
+        
         VInput.KeyDown(KeyCode.D);
-        yield return null;
-        VInput.KeyUp(KeyCode.D);
-        yield return null;
-        Vector3 posEnd = player.transform.position;
-        if (posEnd.x != posStart.x)
+        start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            posStart != playerT.position || (Time.unscaledTime - start) * Time.timeScale > 1);
+        if (posStart != playerT.position)
         {
             Assert.Fail("Level 3: \"Player\"'s movement should be implemented via <Rigidbody2D> component");
         }
+        VInput.KeyUp(KeyCode.D);
 
         playerRB.constraints = RigidbodyConstraints2D.FreezeRotation;
+        start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            playerRB.constraints == RigidbodyConstraints2D.FreezeRotation || (Time.unscaledTime - start) * Time.timeScale > 2);
+        
         VInput.KeyDown(KeyCode.D);
-        yield return null;
-        yield return null;
-        if (playerRB.velocity.x == 0)
+        start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            playerRB.velocity.x != 0 || (Time.unscaledTime - start) * Time.timeScale > 3);
+        if (playerRB.velocity.x != 0)
         {
             Assert.Fail("Level 3: \"Player\"'s horizontal movement should be implemented by changing x-axis velocity");
         }
-
         VInput.KeyUp(KeyCode.D);
-        yield return null;
     }
 
     [UnityTest, Order(4)]
@@ -148,8 +182,8 @@ public class Stage5_2_Tests
         VInput.KeyPress(KeyCode.Space);
         float start = Time.unscaledTime;
         yield return new WaitUntil(() =>
-            playerRB.velocity.y > 0 || (Time.unscaledTime - start) * Time.timeScale > 5);
-        if ((Time.unscaledTime - start) * Time.timeScale >= 5)
+            playerRB.velocity.y > 0 || (Time.unscaledTime - start) * Time.timeScale > 3);
+        if (playerRB.velocity.y <= 0)
         {
             Assert.Fail("Level 3: When the Space-button was pressed jump should be provided, so the Rigidbody2D's " +
                         "y-axis velocity should increase");
@@ -159,7 +193,7 @@ public class Stage5_2_Tests
         float startOfJump = start;
         yield return new WaitUntil(() =>
             playerRB.velocity.y < 0 || (Time.unscaledTime - start) * Time.timeScale > 5);
-        if ((Time.unscaledTime - start) * Time.timeScale >= 5)
+        if (playerRB.velocity.y >= 0)
         {
             Assert.Fail(
                 "Level 3: Y-axis velocity of <Rigidbody2D> component should decrease after the jump was provided," +
@@ -169,14 +203,14 @@ public class Stage5_2_Tests
         start = Time.unscaledTime;
         yield return new WaitUntil(() =>
             playerCl.IsTouching(groundCl) || (Time.unscaledTime - start) * Time.timeScale > 5);
-        if ((Time.unscaledTime - start) * Time.timeScale >= 5)
+        if (!playerCl.IsTouching(groundCl))
         {
             Assert.Fail("Level 3: After the jump is provided, player should fall down to the ground. " +
                         "Jump duration should be less than 2 seconds");
         }
 
         float duration = (Time.unscaledTime - startOfJump) * Time.timeScale;
-        if (duration >= 2)
+        if (duration >= 3)
         {
             Assert.Fail("Level 3: Jump duration should be less than 2 seconds, but in your case it's " + duration);
         }
@@ -191,7 +225,7 @@ public class Stage5_2_Tests
         float start = Time.unscaledTime;
         yield return new WaitUntil(() =>
             playerRB.velocity.y < 0 || (Time.unscaledTime - start) * Time.timeScale > 5);
-        if ((Time.unscaledTime - start) * Time.timeScale >= 5)
+        if (playerRB.velocity.y >= 0)
         {
             Assert.Fail(
                 "Level 3: Y-axis velocity of <Rigidbody2D> component should decrease after the jump was provided," +
@@ -202,16 +236,17 @@ public class Stage5_2_Tests
 
         float velocityPrev = playerRB.velocity.y;
         VInput.KeyPress(KeyCode.Space);
-        yield return null;
-        yield return null;
-        if (playerRB.velocity.y > velocityPrev)
+        start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            playerRB.velocity.y > velocityPrev && playerRB.velocity.y!=0 || (Time.unscaledTime - start) * Time.timeScale > 1);
+        if (playerRB.velocity.y > velocityPrev && playerRB.velocity.y!=0)
         {
             Assert.Fail("Level 3: \"Player\" should not be able to jump while it's in midair");
         }
-
+        start = Time.unscaledTime;
         yield return new WaitUntil(() =>
             playerCl.IsTouching(groundCl) || (Time.unscaledTime - start) * Time.timeScale > 5);
-        if ((Time.unscaledTime - start) * Time.timeScale >= 5)
+        if (!playerCl.IsTouching(groundCl))
         {
             Assert.Fail("Level 3: After the jump is provided, player should fall down to the ground. " +
                         "Jump duration should be less than 2 seconds");
@@ -221,26 +256,11 @@ public class Stage5_2_Tests
     [UnityTest, Order(6)]
     public IEnumerator CheckBounds()
     {
-        bool BoundsTagExist = false;
-        SerializedObject tagManager =
-            new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
-        SerializedProperty tagsProp = tagManager.FindProperty("tags");
-        for (int i = 0; i < tagsProp.arraySize; i++)
-        {
-            SerializedProperty t = tagsProp.GetArrayElementAtIndex(i);
-            if (t.stringValue.Equals("Bounds"))
-            {
-                BoundsTagExist = true;
-                break;
-            }
-        }
-
-        if (!BoundsTagExist)
+        if (!PMHelper.CheckTagExistance("Bounds"))
         {
             Assert.Fail("Level 3: \"Bounds\" tag was not added to project");
         }
 
-        yield return null;
         GameObject[] bounds = GameObject.FindGameObjectsWithTag("Bounds");
         if (bounds.Length != 2)
         {
@@ -272,18 +292,22 @@ public class Stage5_2_Tests
             }
 
             b.layer = LayerMask.NameToLayer("Test");
+            float start = Time.unscaledTime;
+            yield return new WaitUntil(() =>
+                b.layer == LayerMask.NameToLayer("Test") || (Time.unscaledTime - start) * Time.timeScale > 1);
         }
 
-        leftBoundPoint = PMHelper.RaycastFront2D(playerT.position, Vector2.left,
-            1 << LayerMask.NameToLayer("Test")).point;
-        rightBoundPoint = PMHelper.RaycastFront2D(playerT.position, Vector2.right,
-            1 << LayerMask.NameToLayer("Test")).point;
-
-        leftBoundCl = PMHelper.RaycastFront2D(playerT.position, Vector2.left,
+        Vector3 position = playerT.position;
+        
+        leftBoundCl = PMHelper.RaycastFront2D(position, Vector2.left,
             1 << LayerMask.NameToLayer("Test")).collider;
-        rightBoundCl = PMHelper.RaycastFront2D(playerT.position, Vector2.right,
+        rightBoundCl = PMHelper.RaycastFront2D(position, Vector2.right,
             1 << LayerMask.NameToLayer("Test")).collider;
 
+        leftBoundPoint = PMHelper.RaycastFront2D(position, Vector2.left,
+            1 << LayerMask.NameToLayer("Test")).point;
+        rightBoundPoint = PMHelper.RaycastFront2D(position, Vector2.right,
+            1 << LayerMask.NameToLayer("Test")).point;
 
         if (!leftBoundCl)
         {
@@ -312,7 +336,6 @@ public class Stage5_2_Tests
                 "Level 3: There should be an object with \"Bounds\" tag on \"Player\"'s right and stop it from" +
                 " passing through (\"Player\" should not be able to jump it over, or crawl underneath it)");
         }
-
 
         foreach (GameObject b in bounds)
         {
@@ -343,39 +366,35 @@ public class Stage5_2_Tests
     {
         GameObject cameraObj = GameObject.Find("Main Camera");
         Camera camera = PMHelper.Exist<Camera>(cameraObj);
-        yield return null;
 
-        Time.timeScale = 20;
-        float start = Time.unscaledTime;
+        Time.timeScale = 15;
         VInput.KeyDown(KeyCode.A);
+        float start = Time.unscaledTime;
         yield return new WaitUntil(() =>
-            playerCl.IsTouching(leftBoundCl) || (Time.unscaledTime - start) * Time.timeScale > 10);
-        if ((Time.unscaledTime - start) * Time.timeScale >= 10)
+            playerCl.IsTouching(leftBoundCl) || (Time.unscaledTime - start) * Time.timeScale > 12);
+        if (!playerCl.IsTouching(leftBoundCl))
         {
             Assert.Fail(
                 "Level 3: Player should be able to get from left bound to the right one in less than 10 game-time seconds");
         }
-
         VInput.KeyUp(KeyCode.A);
-        yield return null;
-
+        
         if (!PMHelper.CheckVisibility(camera, playerT, 2))
         {
             Assert.Fail("Level 3: Player should always stay in a camera view");
         }
 
-        start = Time.unscaledTime;
+        
         VInput.KeyDown(KeyCode.D);
+        start = Time.unscaledTime;
         yield return new WaitUntil(() =>
-            playerCl.IsTouching(rightBoundCl) || (Time.unscaledTime - start) * Time.timeScale > 10);
-        if ((Time.unscaledTime - start) * Time.timeScale >= 10)
+            playerCl.IsTouching(rightBoundCl) || (Time.unscaledTime - start) * Time.timeScale > 12);
+        if (!playerCl.IsTouching(rightBoundCl))
         {
             Assert.Fail(
                 "Level 3: Player should be able to get from left bound to the right one in less than 10 game-time seconds");
         }
-
         VInput.KeyUp(KeyCode.D);
-        yield return null;
 
         if (!PMHelper.CheckVisibility(camera, playerT, 2))
         {
@@ -384,10 +403,10 @@ public class Stage5_2_Tests
     }
 
     [UnityTest, Order(8)]
-    public IEnumerator LevelEndPositionCheck()
+    public IEnumerator LevelEndCheck()
     {
         Vector2 LevelEndPlace = (Vector2) levelEnd.transform.position + levelEndCl.offset;
-        yield return null;
+
         if (!PMHelper.RaycastFront2D(LevelEndPlace, Vector2.down,
             1 << LayerMask.NameToLayer("Test")).collider)
         {
@@ -404,21 +423,15 @@ public class Stage5_2_Tests
         {
             Assert.Fail("Level 3: \"LevelEnd\" should not be placed too high, so \"Player\" could reach it");
         }
-    }
-
-    [UnityTest, Order(9)]
-    public IEnumerator LevelEndActionCheck()
-    {
+    
         Scene cur = SceneManager.GetActiveScene();
-        yield return null;
-        playerRB.constraints = RigidbodyConstraints2D.FreezeAll;
-        playerT.position = (Vector2) levelEnd.transform.position + levelEndCl.offset;
+        playerT.position = LevelEndPlace;
 
         levelEndCl.enabled = true;
         float start = Time.unscaledTime;
         yield return new WaitUntil(() =>
-            SceneManager.GetActiveScene() != cur || (Time.unscaledTime - start) * Time.timeScale > 5);
-        if ((Time.unscaledTime - start) * Time.timeScale >= 5)
+            SceneManager.GetActiveScene() != cur || (Time.unscaledTime - start) * Time.timeScale > 2);
+        if (SceneManager.GetActiveScene() == cur)
         {
             Assert.Fail(
                 "Level 3: When \"Player\" collides with a \"LevelEnd\" object - scene should change (or just reload).");

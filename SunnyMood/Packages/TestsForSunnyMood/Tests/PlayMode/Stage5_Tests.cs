@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -18,46 +17,37 @@ public class Stage5_Tests
     private AnimationClip[] ratAclips;
 
     [UnityTest, Order(0)]
-    public IEnumerator CheckSpawn()
+    public IEnumerator CheckScene()
     {
-        bool EnemyTagExist = false;
-        SerializedObject tagManager =
-            new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
-        SerializedProperty tagsProp = tagManager.FindProperty("tags");
-        for (int i = 0; i < tagsProp.arraySize; i++)
+        Time.timeScale = 0;
+        PMHelper.TurnCollisions(false);
+        if (!Application.CanStreamedLevelBeLoaded("Level 3"))
         {
-            SerializedProperty t = tagsProp.GetArrayElementAtIndex(i);
-            if (t.stringValue.Equals("Enemy"))
-            {
-                EnemyTagExist = true;
-                break;
-            }
+            Assert.Fail("\"Level 3\" scene is misspelled or was not added to build settings");
         }
 
-        if (!EnemyTagExist)
+        SceneManager.LoadScene("Level 3");
+        float start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            SceneManager.GetActiveScene().name == "Level 3" || (Time.unscaledTime - start) * Time.timeScale > 1);
+        if (SceneManager.GetActiveScene().name != "Level 3")
+        {
+            Assert.Fail("\"Level 3\" scene can't be loaded");
+        }
+
+        if (!PMHelper.CheckTagExistance("Enemy"))
         {
             Assert.Fail("Level 3: \"Enemy\" tag was not added to project");
         }
-
-        Time.timeScale = 0;
-        PMHelper.TurnCollisions(false);
-        SceneManager.LoadScene("Level 3");
-
-        yield return null;
-
 
         enemies = GameObject.FindGameObjectsWithTag("Enemy");
         if (enemies.Length == 0)
         {
             Assert.Fail("Level 3: Enemies were not added to a scene or their tag misspelled");
         }
-    }
-
-    [UnityTest, Order(1)]
-    public IEnumerator NecessaryComponents()
-    {
+    
         GameObject background = GameObject.Find("Background");
-        yield return null;
+        
         SpriteRenderer backgroundSR = PMHelper.Exist<SpriteRenderer>(background);
 
         foreach (GameObject rat in enemies)
@@ -101,24 +91,16 @@ public class Stage5_Tests
             {
                 Assert.Fail("Level 3: There should be created controller, attached to enemies' <Animator> component!");
             }
-
-            yield return null;
+            
             ratAclips = ratAnim.runtimeAnimatorController.animationClips;
         }
-
-        yield return null;
-    }
-
-    [UnityTest, Order(2)]
-    public IEnumerator AnimationCheck()
-    {
+        
         if (ratAclips.Length != 1)
         {
-            Assert.Fail("Level 3: There should be added 1 clip to enemies' animator: \"EnemyWalk\"");
+            Assert.Fail("Level 3: There should be added only 1 clip to enemies' animator: \"EnemyWalk\"");
         }
 
         AnimationClip walk = Array.Find(ratAclips, clip => clip.name.Equals("EnemyWalk"));
-        yield return null;
 
         if (walk == null) Assert.Fail("Level 3: There should be a clip in enemies' animator, called \"EnemyWalk\"");
         if (walk.legacy)
@@ -127,7 +109,7 @@ public class Stage5_Tests
         if (walk.empty) Assert.Fail("Level 3: \"EnemyWalk\" clip in enemies' animator should have animation keys");
         if (!walk.isLooping) Assert.Fail("Level 3: \"EnemyWalk\" clip in enemies' animator should be looped");
 
-        yield return null;
+        
         if (ratAnim.GetCurrentAnimatorClipInfo(0)[0].clip.name != "EnemyWalk")
         {
             Assert.Fail("Level 3: \"EnemyWalk\" clip should be played by default");
@@ -155,58 +137,68 @@ public class Stage5_Tests
         SpriteRenderer sr = rat.GetComponent<SpriteRenderer>();
         bool rotated = sr.flipX;
 
-        Vector2 firstPos = rat.transform.position;
-        yield return null;
-        Vector2 secondPos = rat.transform.position;
-        if (firstPos == secondPos)
+        Vector3 firstPos = rat.transform.position;
+        
+        float start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            rat.transform.position != firstPos || (Time.unscaledTime - start) * Time.timeScale > 1);
+        if (firstPos == rat.transform.position)
         {
             Assert.Fail("Level 3: Enemies are not moving");
         }
+        
+        bool movingLeft = firstPos.x < rat.transform.position.x;
 
-        bool movingLeft = firstPos.x < secondPos.x;
-
-        float start = Time.unscaledTime;
+        start = Time.unscaledTime;
         yield return new WaitUntil(() =>
-            sr.flipX != rotated || (Time.unscaledTime - start) * Time.timeScale > 5);
-        if ((Time.unscaledTime - start) * Time.timeScale >= 5)
+            sr.flipX != rotated || (Time.unscaledTime - start) * Time.timeScale > 6);
+        if ((Time.unscaledTime - start) * Time.timeScale >= 6)
         {
             Assert.Fail(
                 "Level 3: Enemies should change their movement direction and flip their sprite in less than 5 seconds");
         }
 
         firstPos = rat.transform.position;
-        yield return null;
-        secondPos = rat.transform.position;
-        if (movingLeft == firstPos.x < secondPos.x)
+        start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            rat.transform.position != firstPos || (Time.unscaledTime - start) * Time.timeScale > 1);
+        if (firstPos == rat.transform.position)
+        {
+            Assert.Fail("Level 3: Enemies are not moving");
+        }
+        if (movingLeft == firstPos.x < rat.transform.position.x)
         {
             Assert.Fail(
                 "Level 3: Enemies should change their movement direction and flip their sprite in less than 5 seconds");
         }
-
-        yield return null;
     }
 
     [UnityTest, Order(4)]
     public IEnumerator CollisionCheck()
     {
+        if (!Application.CanStreamedLevelBeLoaded("Level 3"))
+        {
+            Assert.Fail("\"Level 3\" scene is misspelled or was not added to build settings");
+        }
+
         SceneManager.LoadScene("Level 3");
-        yield return null;
+        float start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            SceneManager.GetActiveScene().name == "Level 3" || (Time.unscaledTime - start) * Time.timeScale > 1);
+        if (SceneManager.GetActiveScene().name != "Level 3")
+        {
+            Assert.Fail("\"Level 3\" scene can't be loaded");
+        }
 
         player = GameObject.Find("Player");
         rat = GameObject.FindWithTag("Enemy");
-        GameObject gem = GameObject.FindWithTag("Gem");
-        gem.transform.position = rat.transform.position;
-        if (!gem)
-        {
-            Assert.Fail("Level 3: There should be no collisions with enemies, except the player one");
-        }
 
         Scene cur = SceneManager.GetActiveScene();
         String name = cur.name;
-        yield return null;
+        
         player.transform.position = rat.transform.position;
 
-        float start = Time.unscaledTime;
+        start = Time.unscaledTime;
         yield return new WaitUntil(() =>
             SceneManager.GetActiveScene() != cur || (Time.unscaledTime - start) * Time.timeScale > 1);
         if ((Time.unscaledTime - start) * Time.timeScale >= 1)

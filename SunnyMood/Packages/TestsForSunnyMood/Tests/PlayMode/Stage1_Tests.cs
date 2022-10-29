@@ -15,47 +15,47 @@ public class Stage1_Tests
         cameraObj,
         levelend;
 
-    private bool exist;
     private SpriteRenderer playerSR, backgroundSR, levelEndSR;
     private TilemapRenderer groundTMR;
 
     [UnityTest, Order(1)]
-    public IEnumerator ObjectsExistCheck()
+    public IEnumerator Check()
     {
-        int layer = LayerMask.NameToLayer("Test");
-        if (layer < 0)
+        if (!PMHelper.CheckLayerExistance("Test"))
         {
-            Assert.Fail("Level 1: Please, do not remove \"Test\" layer, it's existance necessary for tests");
+            Assert.Fail("Please, do not remove \"Test\" layer, it's existence necessary for tests");
         }
-
-        Time.timeScale = 0;
 
         if (!Application.CanStreamedLevelBeLoaded("Level 1"))
         {
-            Assert.Fail("Level 1: \"Level 1\" scene is misspelled or was not added to build settings");
+            Assert.Fail("\"Level 1\" scene is misspelled or was not added to build settings");
         }
 
-        yield return null;
-
+        PMHelper.TurnCollisions(false);
         SceneManager.LoadScene("Level 1");
-        yield return null;
 
-        (background, exist) = PMHelper.Exist("Background");
-        if (!exist)
+        float start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            SceneManager.GetActiveScene().name == "Level 1" || (Time.unscaledTime - start) * Time.timeScale > 1);
+        if (SceneManager.GetActiveScene().name != "Level 1")
+        {
+            Assert.Fail("\"Level 1\" scene can't be loaded");
+        }
+
+        //Objects exist
+        background = GameObject.Find("Background");
+        if (!background)
             Assert.Fail("Level 1: There should be a background, named \"Background\" on scene");
 
-        (player, exist) = PMHelper.Exist("Player");
-        if (!exist)
+        player = GameObject.Find("Player");
+        if (!player)
             Assert.Fail("Level 1: There should be a player, named \"Player\" on scene");
 
-        (levelend, exist) = PMHelper.Exist("LevelEnd");
-        if (!exist)
+        levelend = GameObject.Find("LevelEnd");
+        if (!levelend)
             Assert.Fail("Level 1: There should be a level end, named \"LevelEnd\" on scene");
-    }
 
-    [UnityTest, Order(2)]
-    public IEnumerator BasicObjectComponentsCheck()
-    {
+        //Objects components correct
         backgroundSR = PMHelper.Exist<SpriteRenderer>(background);
         if (!backgroundSR || !backgroundSR.enabled)
             Assert.Fail("Level 1: There is no <SpriteRenderer> component on \"Background\" object or it is disabled");
@@ -68,13 +68,13 @@ public class Stage1_Tests
         if (!playerSR.sprite)
             Assert.Fail("Level 1: There should be sprite, attached to \"Player\"'s <SpriteRenderer>");
 
-        Collider2D playerCL = PMHelper.Exist<Collider2D>(player);
-        if (!playerCL || !playerCL.enabled)
+        Collider2D playerCl = PMHelper.Exist<Collider2D>(player);
+        if (!playerCl || !playerCl.enabled)
         {
             Assert.Fail("Level 1: Player should have assigned enabled <Collider2D> component");
         }
 
-        if (playerCL.isTrigger)
+        if (playerCl.isTrigger)
         {
             Assert.Fail("Level 1: Player's <Collider2D> component should not be triggerable");
         }
@@ -118,47 +118,35 @@ public class Stage1_Tests
         if (!levelEndSR.sprite)
             Assert.Fail("Level 1: There should be sprite, attached to \"LevelEnd\"'s <SpriteRenderer>");
 
-        Collider2D levelEndCL = PMHelper.Exist<Collider2D>(levelend);
-        if (!levelEndCL || !levelEndCL.enabled)
+        Collider2D levelEndCl = PMHelper.Exist<Collider2D>(levelend);
+        if (!levelEndCl || !levelEndCl.enabled)
         {
             Assert.Fail("Level 1: \"LevelEnd\" object should have an assigned enabled <Collider2D> component");
         }
 
-        if (!levelEndCL.isTrigger)
+        if (!levelEndCl.isTrigger)
         {
             Assert.Fail("Level 1: \"LevelEnd\"'s <Collider2D> component should be triggerable");
         }
-
-        yield return null;
-    }
-
-    [UnityTest, Order(3)]
-    public IEnumerator GridCheck()
-    {
-        yield return null;
-        (grid, exist) = PMHelper.Exist("Grid");
-        if (!exist)
+        // Grid check
+        grid = GameObject.Find("Grid");
+        if (!grid)
         {
             Assert.Fail("Level 1: There should be a tilemap grid, named \"Grid\" on scene");
         }
 
-        (ground, exist) = PMHelper.Exist("Ground");
+        ground = GameObject.Find("Ground");
         if (!ground)
         {
             Assert.Fail("Level 1: There should be a ground tilemap, named \"Ground\" on scene");
         }
-    }
-
-    [UnityTest, Order(4)]
-    public IEnumerator BasicGridComponentsCheck()
-    {
-        yield return null;
-        Grid gridGR = PMHelper.Exist<Grid>(grid);
-        if (!gridGR)
+    
+        Grid gridGr = PMHelper.Exist<Grid>(grid);
+        if (!gridGr)
             Assert.Fail("Level 1: There should be a <Grid> component on \"Grid\"'s object to use tilemaps");
-        if (gridGR.cellLayout != GridLayout.CellLayout.Rectangle)
+        if (gridGr.cellLayout != GridLayout.CellLayout.Rectangle)
             Assert.Fail("Level 1: \"Grid\"'s <Grid> component should have Rectangle layout");
-        if (gridGR.cellSwizzle != GridLayout.CellSwizzle.XYZ)
+        if (gridGr.cellSwizzle != GridLayout.CellSwizzle.XYZ)
             Assert.Fail("Level 1: \"Grid\"'s <Grid> component should have XYZ swizzle");
 
         Tilemap groundTM = PMHelper.Exist<Tilemap>(ground);
@@ -171,24 +159,20 @@ public class Stage1_Tests
         if (groundTM.size.x <= 0 || groundTM.size.y <= 0)
             Assert.Fail("Level 1: There are no added tiles to \"Ground\"'s tilemap");
 
-        Collider2D groundCL = PMHelper.Exist<Collider2D>(ground);
-        if (!groundCL || !groundCL.enabled)
+        Collider2D groundCl = PMHelper.Exist<Collider2D>(ground);
+        if (!groundCl || !groundCl.enabled)
         {
             Assert.Fail("Level 1: \"Ground\" object should have an assigned enabled <Collider2D> component");
         }
 
-        if (groundCL.isTrigger)
+        if (groundCl.isTrigger)
         {
             Assert.Fail("Level 1: \"Ground\"'s <Collider2D> component should not be triggerable");
         }
-    }
-
-    [UnityTest, Order(5)]
-    public IEnumerator CameraCheck()
-    {
-        yield return null;
-        (cameraObj, exist) = PMHelper.Exist("Main Camera");
-        if (!exist)
+    
+        //Camera check
+        cameraObj = GameObject.Find("Main Camera");
+        if (!cameraObj)
             Assert.Fail("Level 1: There should be a camera, named \"Main Camera\" on scene");
 
         Camera camera = PMHelper.Exist<Camera>(cameraObj);
@@ -199,12 +183,8 @@ public class Stage1_Tests
             Assert.Fail("Level 1: Player's object should be in a camera view");
         if (!PMHelper.CheckVisibility(camera, background.transform, 2))
             Assert.Fail("Level 1: Background's object should be in a camera view");
-    }
-
-    [UnityTest, Order(6)]
-    public IEnumerator ChildrenCheck()
-    {
-        yield return null;
+    
+        //Children check
         if (!PMHelper.Child(background, cameraObj))
             Assert.Fail(
                 "Level 1: \"Background\"'s object should be a child of \"Main Camera\" object in order to move" +
@@ -212,12 +192,8 @@ public class Stage1_Tests
         if (!PMHelper.Child(ground, grid))
             Assert.Fail(
                 "Level 1: \"Ground\"'s object should be a child of \"Grid\" object, because tilemap's should be a child of grid!");
-    }
-
-    [UnityTest, Order(7)]
-    public IEnumerator SortingCheck()
-    {
-        yield return null;
+   
+        //Sorting check
         int layer = playerSR.sortingLayerID;
         if (backgroundSR.sortingLayerID != layer || levelEndSR.sortingLayerID != layer ||
             groundTMR.sortingLayerID != layer)
@@ -234,13 +210,17 @@ public class Stage1_Tests
         if (!correctSort)
             Assert.Fail(
                 "Level 1: Order in layers should be placed in correct order: Background < LevelEnd < Ground < Player!");
-    }
-
-    [UnityTest, Order(8)]
-    public IEnumerator CheckPositions()
-    {
+        
+        //Position check
         ground.layer = LayerMask.NameToLayer("Test");
-        yield return null;
+        
+        start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            ground.layer == LayerMask.NameToLayer("Test") || (Time.unscaledTime - start) * Time.timeScale > 1);
+        if (ground.layer != LayerMask.NameToLayer("Test"))
+        {
+            Assert.Fail("Unexpected");
+        }
         if (!PMHelper.RaycastFront2D(player.transform.position, Vector2.down,
             1 << LayerMask.NameToLayer("Test")).collider)
         {

@@ -3,7 +3,6 @@ using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
-using UnityEngine.UI;
 
 [Description("I'd rather chase the Sun than wait for it."), Category("7")]
 public class Stage7_Tests
@@ -14,51 +13,68 @@ public class Stage7_Tests
     [UnityTest, Order(0)]
     public IEnumerator InGameSoundCheck()
     {
+        Time.timeScale = 5;
         SceneManager.LoadScene("Main Menu");
-        yield return null;
+        float start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            SceneManager.GetActiveScene().name == "Main Menu" || (Time.unscaledTime - start) * Time.timeScale > 1);
+        if (SceneManager.GetActiveScene().name != "Main Menu")
+        {
+            Assert.Fail("\"Main Menu\" scene can't be loaded");
+        }
+
+        yield return new WaitUntil(() =>
+            PMHelper.AudioSourcePlaying("Theme") || (Time.unscaledTime - start) * Time.timeScale > 1);
 
         sTheme = PMHelper.AudioSourcePlaying("Theme");
-        yield return null;
         if (!sTheme)
-            Assert.Fail("There is no \"Theme\" AudioSource on \"Main Menu\" scene, after it was loaded");
+            Assert.Fail("There is no \"Theme\" AudioSource on \"Main Menu\" scene");
         if (!sTheme.isPlaying)
-            Assert.Fail("\"Theme\" AudioSource should be playing after scene was loaded");
+            Assert.Fail("\"Theme\" AudioSource should be playing on \"Main Menu\"");
         if (!sTheme.loop)
             Assert.Fail("\"Theme\" AudioSource should be looped");
 
         SceneManager.LoadScene("Level 1");
-        yield return null;
+        start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            SceneManager.GetActiveScene().name == "Level 1" || (Time.unscaledTime - start) * Time.timeScale > 1);
+        if (SceneManager.GetActiveScene().name != "Level 1")
+        {
+            Assert.Fail("\"Level 1\" scene can't be loaded");
+        }
 
+        yield return new WaitUntil(() =>
+            PMHelper.AudioSourcePlaying("Theme") || (Time.unscaledTime - start) * Time.timeScale > 1);
+        
+        sTheme = PMHelper.AudioSourcePlaying("Theme");
+        if (!sTheme)
+            Assert.Fail("There is no \"Theme\" AudioSource on levels' scenes");
+        if (!sTheme.isPlaying)
+            Assert.Fail("\"Theme\" AudioSource should be playing on levels' scenes");
+        if (!sTheme.loop)
+            Assert.Fail("\"Theme\" AudioSource should be looped");
+        
         player = GameObject.Find("Player");
         ground = GameObject.Find("Ground");
         gem = GameObject.FindWithTag("Gem");
-        yield return null;
+
         Collider2D playerCL = PMHelper.Exist<Collider2D>(player);
         Collider2D groundCL = PMHelper.Exist<Collider2D>(ground);
 
-        float start = Time.unscaledTime;
+        start = Time.unscaledTime;
         yield return new WaitUntil(() =>
             playerCL.IsTouching(groundCL) || (Time.unscaledTime - start) * Time.timeScale > 5);
         if ((Time.unscaledTime - start) * Time.timeScale >= 5)
         {
-            Assert.Fail("Level 1: Player's start position is too high from ground");
+            Assert.Fail(
+                "Level 1: In some time after the scene was loaded \"Player\"'s collider should be touching \"Ground\"'s collider");
         }
 
-        yield return null;
-
-        sTheme = PMHelper.AudioSourcePlaying("Theme");
-        if (!sTheme)
-            Assert.Fail("There is no \"Theme\" AudioSource on levels' scenes, after it was loaded");
-        if (!sTheme.isPlaying)
-            Assert.Fail("\"Theme\" AudioSource should be playing after scene was loaded");
-        if (!sTheme.loop)
-            Assert.Fail("\"Theme\" AudioSource should be looped");
-
-
-        yield return null;
         VInput.KeyPress(KeyCode.Space);
-        yield return null;
-
+        
+        yield return new WaitUntil(() =>
+            PMHelper.AudioSourcePlaying("Jump") || (Time.unscaledTime - start) * Time.timeScale > 1);
+        
         sJump = PMHelper.AudioSourcePlaying("Jump");
         if (!sJump)
             Assert.Fail("There is no \"Jump\" AudioSource when jump was performed");
@@ -66,17 +82,20 @@ public class Stage7_Tests
             Assert.Fail("\"Jump\" AudioSource should be played when player's jump is performed");
         if (sJump.loop)
             Assert.Fail("\"Jump\" AudioSource should not be looped");
-
-        yield return null;
+        
+        
         gem.transform.position = playerCL.bounds.center;
         start = Time.unscaledTime;
         yield return new WaitUntil(() =>
             !gem || (Time.unscaledTime - start) * Time.timeScale > 1);
-        if ((Time.unscaledTime - start) * Time.timeScale >= 1)
+        if (gem)
         {
             Assert.Fail("Level 1: \"Gem\"s should be destroyed instantly when the player collides with them");
         }
 
+        yield return new WaitUntil(() =>
+            PMHelper.AudioSourcePlaying("PickGem") || (Time.unscaledTime - start) * Time.timeScale > 1);
+        
         sGem = PMHelper.AudioSourcePlaying("PickGem");
         if (!sGem)
             Assert.Fail("There is no \"PickGem\" AudioSource when gem was collected");

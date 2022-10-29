@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using NUnit.Framework;
-using UnityEditor;
 using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 using UnityEngine.Tilemaps;
@@ -16,39 +15,31 @@ public class Stage4_Tests
     private GameObject grid, ground;
     private Vector2 playerSize;
     private float jumpheight;
+    private LayerMask groundLayer;
 
     [UnityTest, Order(1)]
     public IEnumerator NecessaryComponents()
     {
-        bool PlatformTagExist = false;
-        SerializedObject tagManager =
-            new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
-        SerializedProperty tagsProp = tagManager.FindProperty("tags");
-        for (int i = 0; i < tagsProp.arraySize; i++)
-        {
-            SerializedProperty t = tagsProp.GetArrayElementAtIndex(i);
-            if (t.stringValue.Equals("Platform"))
-            {
-                PlatformTagExist = true;
-                break;
-            }
-        }
-
-        if (!PlatformTagExist)
+        if (!PMHelper.CheckTagExistance("Platform"))
         {
             Assert.Fail("Level 2: \"Platform\" tag was not added to project");
         }
+        
+        PMHelper.TurnCollisions(true);
 
-        Time.timeScale = 0;
-        PMHelper.TurnCollisions(false);
+        if (!Application.CanStreamedLevelBeLoaded("Level 2"))
+        {
+            Assert.Fail("\"Level 2\" scene is misspelled or was not added to build settings");
+        }
+
         SceneManager.LoadScene("Level 2");
-        yield return null;
-
-        GameObject helperObj = new GameObject();
-        StageHelper helper = helperObj.AddComponent<StageHelper>();
-        yield return null;
-        helper.RemoveEnemies();
-        yield return null;
+        float start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            SceneManager.GetActiveScene().name == "Level 2" || (Time.unscaledTime - start) * Time.timeScale > 1);
+        if (SceneManager.GetActiveScene().name != "Level 2")
+        {
+            Assert.Fail("\"Level 2\" scene can't be loaded");
+        }
 
         player = GameObject.Find("Player");
         platforms = GameObject.FindGameObjectsWithTag("Platform");
@@ -65,9 +56,12 @@ public class Stage4_Tests
             b.layer = LayerMask.NameToLayer("Test");
         }
 
+        groundLayer = ground.layer;
         ground.layer = LayerMask.NameToLayer("Test");
 
-        yield return null;
+        start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            ground.layer == LayerMask.NameToLayer("Test") || (Time.unscaledTime - start) * Time.timeScale > 1);
 
         foreach (GameObject platform in platforms)
         {
@@ -88,13 +82,12 @@ public class Stage4_Tests
                 Assert.Fail("Level 2: There should be added tiles to \"Platform\"s' tilemap");
 
             GameObject background = GameObject.Find("Background");
-            yield return null;
             SpriteRenderer backgroundSR = PMHelper.Exist<SpriteRenderer>(background);
 
             if (backgroundSR.sortingLayerID != platformTMR.sortingLayerID)
             {
                 Assert.Fail("Level 2: There is no need here to create new sorting layers. " +
-                            "Set all the <SpriteRenderer>s on the same sorting layer. To order visibility you should change their" +
+                            "Set all the <SpriteRenderer>s on the same sorting layer. To order visibility you should change their " +
                             "\"Order in layer\" property");
             }
 
@@ -120,7 +113,7 @@ public class Stage4_Tests
                     "Level 2: \"Platform\"s' <Collider2D> component should have assigned <2D Physics Material> with " +
                     "friction set to zero, so the player won't be able to hang on the edge of platforms");
             }
-
+            
             if (!PMHelper.RaycastFront2D(platformCL.bounds.center, Vector2.down,
                 1 << LayerMask.NameToLayer("Test")).collider)
             {
@@ -142,12 +135,14 @@ public class Stage4_Tests
             }
 
             playerSize = player.GetComponent<Collider2D>().bounds.size;
-            if (playerSize.x * 2 > platformCL.size.x)
+            if (playerSize.x * 2 >= platformCL.size.x)
             {
                 Assert.Fail(
                     "Level 2: Let \"Platform\"s' <Collider2D> component be at least twice as wider, than player's one");
             }
         }
+
+        ground.layer = groundLayer;
     }
 
     [UnityTest, Order(2)]
@@ -172,38 +167,35 @@ public class Stage4_Tests
             }
         }
 
-        yield return null;
-
-
+        Collider2D groundCL = PMHelper.Exist<Collider2D>(ground);
         Collider2D platformCL = PMHelper.Exist<Collider2D>(platformTmp);
         Collider2D playerCL = PMHelper.Exist<Collider2D>(player);
-        Collider2D groundCl = PMHelper.Exist<Collider2D>(ground);
         Rigidbody2D playerRB = PMHelper.Exist<Rigidbody2D>(player);
-        platformCL.enabled = false;
-
+        
+        float start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            playerCL.IsTouching(groundCL) || (Time.unscaledTime - start) * Time.timeScale > 5);
+        if ((Time.unscaledTime - start) * Time.timeScale >= 5)
+        {
+            Assert.Fail(
+                "Level 1: In some time after the scene was loaded \"Player\"'s collider should be touching \"Ground\"'s collider");
+        }
+        
         if (playerCL.bounds.max.y >= platformCL.bounds.min.y)
         {
             Assert.Fail("Level 2: Platform with the lowest Y-axis should be placed higher than a player");
         }
 
-        yield return null;
+        platformCL.enabled = false;
 
-        PMHelper.TurnCollisions(true);
-        yield return null;
-        Time.timeScale = 1;
-        groundCl.gameObject.layer = LayerMask.NameToLayer("Ground");
-        float start = Time.unscaledTime;
+        start = Time.unscaledTime;
         yield return new WaitUntil(() =>
-            playerCL.IsTouching(groundCl) || (Time.unscaledTime - start) * Time.timeScale > 5);
-        if ((Time.unscaledTime - start) * Time.timeScale >= 5)
-        {
-            Assert.Fail("Level 2: After the jump is provided, player should fall down to the ground. " +
-                        "Jump duration should be less than 2 seconds");
-        }
+            !platformCL.enabled || (Time.unscaledTime - start) * Time.timeScale > 1);
 
-        Vector2 playerPlace = player.transform.position;
+        Time.timeScale = 1;
 
-        yield return null;
+
+        Vector2 playerPlace = playerCL.bounds.min;
 
         VInput.KeyPress(KeyCode.Space);
         start = Time.unscaledTime;
@@ -216,7 +208,7 @@ public class Stage4_Tests
                 " because of the gravity, and after some time it should become negative");
         }
 
-        float jumpPlace = player.transform.position.y;
+        float jumpPlace = playerCL.bounds.min.y;
         jumpheight = jumpPlace - playerPlace.y;
 
         if (jumpPlace <= platformCL.bounds.max.y)
@@ -227,6 +219,9 @@ public class Stage4_Tests
         Time.timeScale = 3;
 
         platformCL.enabled = true;
+        yield return new WaitUntil(() =>
+            platformCL.enabled || (Time.unscaledTime - start) * Time.timeScale > 1);
+        
         player.transform.position =
             new Vector3(platformCL.bounds.center.x, platformCL.bounds.max.y + jumpheight);
 
@@ -235,11 +230,10 @@ public class Stage4_Tests
         if ((Time.unscaledTime - start) * Time.timeScale >= 5)
         {
             Assert.Fail("Level 2: When the player is falling down to the ground, and there is a platform on it's way," +
-                        "player should fall down to the platform.");
+                        " player should fall down to the platform.");
         }
 
-        yield return new WaitForSeconds(0.2f);
-
+        yield return new WaitForSeconds(1);
 
         if (playerRB.velocity.y != 0)
         {
@@ -250,8 +244,8 @@ public class Stage4_Tests
         VInput.KeyPress(KeyCode.Space);
         start = Time.unscaledTime;
         yield return new WaitUntil(() =>
-            playerRB.velocity.y > 0 || (Time.unscaledTime - start) * Time.timeScale > 1);
-        if ((Time.unscaledTime - start) * Time.timeScale >= 1)
+            playerRB.velocity.y > 0 || (Time.unscaledTime - start) * Time.timeScale > 2);
+        if ((Time.unscaledTime - start) * Time.timeScale >= 2)
         {
             Assert.Fail("Level 2: When the Space-button was pressed (while player is standing on a platform)" +
                         " jump should be provided, so the Rigidbody2D's Y-axis velocity should increase");
@@ -263,15 +257,27 @@ public class Stage4_Tests
     {
         List<PlatformInfo> infos = new List<PlatformInfo>();
         Time.timeScale = 3;
+
+        if (!Application.CanStreamedLevelBeLoaded("Level 2"))
+        {
+            Assert.Fail("\"Level 2\" scene is misspelled or was not added to build settings");
+        }
+
         SceneManager.LoadScene("Level 2");
-        yield return null;
+        float start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            SceneManager.GetActiveScene().name == "Level 2" || (Time.unscaledTime - start) * Time.timeScale > 1);
+        if (SceneManager.GetActiveScene().name != "Level 2")
+        {
+            Assert.Fail("\"Level 2\" scene can't be loaded");
+        }
 
         foreach (GameObject platform in GameObject.FindGameObjectsWithTag("Platform"))
         {
             infos.Add(platform.AddComponent<PlatformInfo>());
         }
 
-        GameObject ground = GameObject.Find("Ground");
+        ground = GameObject.Find("Ground");
         PlatformInfo grInfo = ground.AddComponent<PlatformInfo>();
         grInfo.reachable = true;
         foreach (PlatformInfo info in infos)
@@ -339,9 +345,9 @@ public class Stage4_Tests
             Debug.DrawLine(gemColl.bounds.center,gemColl.bounds.center+Vector3.right*jumpheight,Color.blue,10);
             yield return new WaitForSeconds(10);*/
             Collider2D platform = Array.Find(colls, plat =>
-                plat.gameObject.CompareTag("Platform") ||
+                plat.gameObject.tag == "Platform" ||
                 plat.gameObject.name.Equals("Ground"));
-            if (platform == null)
+            if (!platform)
             {
                 Assert.Fail("Level 2: It should not be hard or impossible to collect gems");
             }
@@ -352,7 +358,7 @@ public class Stage4_Tests
         Collider2D platform2 = Array.Find(colls2, plat =>
             plat.gameObject.CompareTag("Platform") ||
             plat.gameObject.name.Equals("Ground"));
-        if (platform2 == null)
+        if (!platform2)
         {
             Assert.Fail("Level 2: It should not be hard or impossible to reach \"LevelEnd\" object");
         }

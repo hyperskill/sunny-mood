@@ -4,7 +4,6 @@ using NUnit.Framework;
 using UnityEngine.TestTools;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEditor;
 
 [Description(""), Category("5")]
 public class Stage5_3_Tests
@@ -20,33 +19,54 @@ public class Stage5_3_Tests
     [UnityTest, Order(1)]
     public IEnumerator NecessaryComponents()
     {
-        Time.timeScale = 0;
-        PMHelper.TurnCollisions(false);
+        PMHelper.TurnCollisions(true);
+        
+        if (!Application.CanStreamedLevelBeLoaded("Level 3"))
+        {
+            Assert.Fail("\"Level 3\" scene is misspelled or was not added to build settings");
+        }
+        
         SceneManager.LoadScene("Level 3");
-        yield return null;
 
-        GameObject helperObj = new GameObject();
-        StageHelper helper = helperObj.AddComponent<StageHelper>();
-        yield return null;
-        helper.RemovePlatforms();
-        helper.RemoveEnemies();
-        yield return null;
+        float start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            SceneManager.GetActiveScene().name == "Level 3" || (Time.unscaledTime - start) * Time.timeScale > 1);
+        if (SceneManager.GetActiveScene().name != "Level 3")
+        {
+            Assert.Fail("\"Level 3\" scene can't be loaded");
+        }
+        
+        if (PMHelper.CheckTagExistance("Platform"))
+        {
+            foreach (GameObject platform in GameObject.FindGameObjectsWithTag("Platform"))
+            {
+                GameObject.Destroy(platform);
+            }
+            start = Time.unscaledTime;
+            yield return new WaitUntil(() =>
+                GameObject.FindGameObjectsWithTag("Platform").Length!=0 || (Time.unscaledTime - start) * Time.timeScale > 1);
+        }
+        if (PMHelper.CheckTagExistance("Enemy"))
+        {
+            foreach (GameObject platform in GameObject.FindGameObjectsWithTag("Enemy"))
+            {
+                GameObject.Destroy(platform);
+            }
+            start = Time.unscaledTime;
+            yield return new WaitUntil(() =>
+                GameObject.FindGameObjectsWithTag("Enemy").Length!=0 || (Time.unscaledTime - start) * Time.timeScale > 1);
+        }
 
         levelEnd = GameObject.Find("LevelEnd");
-        yield return null;
         levelEndCl = PMHelper.Exist<Collider2D>(levelEnd);
         levelEndCl.enabled = false;
-        PMHelper.TurnCollisions(true);
-        yield return null;
 
         player = GameObject.Find("Player");
-        GameObject ground = GameObject.Find("Ground");
-        yield return null;
+        
+        
         playerCl = PMHelper.Exist<Collider2D>(player);
         sr = PMHelper.Exist<SpriteRenderer>(player);
         anim = PMHelper.Exist<Animator>(player);
-        groundCl = PMHelper.Exist<Collider2D>(ground);
-        yield return null;
 
         if (!anim || !anim.enabled)
         {
@@ -60,56 +80,50 @@ public class Stage5_3_Tests
         }
 
         aclips = anim.runtimeAnimatorController.animationClips;
-    }
 
-    [UnityTest, Order(2)]
-    public IEnumerator CheckAnimationClips()
-    {
-        yield return null;
         if (aclips.Length != 3)
         {
             Assert.Fail(" Level 3: There should be added 3 clips to \"Player\"'s animator: Idle, Jump, Walk");
         }
 
-        AnimationClip idle = Array.Find(aclips, clip => clip.name.Equals("Idle"));
+        foreach (var clipName in new[] {"Idle", "Jump", "Walk"})
+        {
+            AnimationClip clip = Array.Find(aclips, clip => clip.name.Equals(clipName));
 
-        if (!idle) Assert.Fail(" Level 3: There should be a clip in \"Player\"'s animator, called \"Idle\"");
-        if (idle.legacy)
-            Assert.Fail(" Level 3: \"Idle\" clip should be animated by animator, not by the <Legacy Animation>" +
-                        " component, so it's legacy property should be unchecked");
-        if (idle.empty) Assert.Fail(" Level 3: \"Idle\" clip in Player's animator should have animation keys");
-        if (!idle.isLooping) Assert.Fail(" Level 3: \"Idle\" clip in Player's animator should be looped");
+            if (!clip) Assert.Fail(" Level 3: There should be a clip in \"Player\"'s animator, called \""+clipName+"\"");
+            if (clip.legacy)
+                Assert.Fail(" Level 3: \""+clipName+"\" clip should be animated by animator, not by the <Legacy Animation>" +
+                            " component, so it's legacy property should be unchecked");
+            if (clip.empty) Assert.Fail(" Level 3: \""+clipName+"\" clip in Player's animator should have animation keys");
+            if (!clip.isLooping) Assert.Fail(" Level 3: \""+clipName+"\" clip in Player's animator should be looped");
+        }
 
-        AnimationClip jump = Array.Find(aclips, clip => clip.name.Equals("Jump"));
-
-        if (!jump) Assert.Fail(" Level 3: There should be a clip in \"Player\"'s animator, called \"Jump\"");
-        if (jump.legacy)
-            Assert.Fail(" Level 3: \"Jump\" clip should be animated by animator, not by the <Legacy Animation>" +
-                        " component, so it's legacy property should be unchecked");
-        if (jump.empty) Assert.Fail(" Level 3: \"Jump\" clip in Player's animator should have animation keys");
-        if (!jump.isLooping) Assert.Fail(" Level 3: \"Jump\" clip in Player's animator should be looped");
-
-        AnimationClip walk = Array.Find(aclips, clip => clip.name.Equals("Walk"));
-
-        if (!walk) Assert.Fail(" Level 3: There should be a clip in \"Player\"'s animator, called \"Walk\"");
-        if (walk.legacy)
-            Assert.Fail(" Level 3: \"Walk\" clip should be animated by animator, not by the <Legacy Animation>" +
-                        " component, so it's legacy property should be unchecked");
-        if (walk.empty) Assert.Fail(" Level 3: \"Walk\" clip in Player's animator should have animation keys");
-        if (!walk.isLooping) Assert.Fail(" Level 3: \"Walk\" clip in Player's animator should be looped");
+        GameObject ground = GameObject.Find("Ground");
+        groundCl = PMHelper.Exist<Collider2D>(ground);
     }
 
     [UnityTest, Order(3)]
     public IEnumerator CheckTransitions()
     {
-        Time.timeScale = 2;
+        Time.timeScale = 10;
 
         if (sr.flipX)
         {
             Assert.Fail(" Level 3: By default \"Player\"'s sprite should not be flipped");
         }
-
+        
         float start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            playerCl.IsTouching(groundCl) || (Time.unscaledTime - start) * Time.timeScale > 5);
+        if ((Time.unscaledTime - start) * Time.timeScale >= 5)
+        {
+            Assert.Fail(
+                "Level 3: In some time after the scene was loaded \"Player\"'s collider should be touching \"Ground\"'s collider");
+        }
+        
+        yield return new WaitForSeconds(1);
+        
+        start = Time.unscaledTime;
         yield return new WaitUntil(() =>
             anim.GetCurrentAnimatorClipInfo(0)[0].clip.name == "Idle" ||
             (Time.unscaledTime - start) * Time.timeScale > 2);
@@ -138,17 +152,16 @@ public class Stage5_3_Tests
         {
             Assert.Fail(" Level 3: While character is in air - \"Jump\" clip should be played");
         }
-
-        yield return null;
+        
         VInput.KeyUp(KeyCode.D);
         start = Time.unscaledTime;
         yield return new WaitUntil(() =>
-            playerCl.IsTouching(groundCl) || (Time.unscaledTime - start) * Time.timeScale > 5);
-        if ((Time.unscaledTime - start) * Time.timeScale >= 5)
+            playerCl.IsTouching(groundCl)  && !playerCl.IsTouching(groundCl)
+            || (Time.unscaledTime - start) * Time.timeScale > 5);
+        if (!playerCl.IsTouching(groundCl))
         {
-            Assert.Fail(
-                " Level 3: In some time after the scene was loaded \"Player\"'s collider should be \"touching\" \"Ground\"'s collider" +
-                ". But after 5 seconds of game-time, that didn't happen");
+            Assert.Fail("Level 3: After the jump is provided, player should fall down to the ground. " +
+                        "Jump duration should be less than 2 seconds");
         }
 
         VInput.KeyDown(KeyCode.A);
@@ -206,58 +219,39 @@ public class Stage5_3_Tests
     [UnityTest, Order(4)]
     public IEnumerator NecessaryGemComponents()
     {
-        bool GemTagExist = false;
-        SerializedObject tagManager =
-            new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
-        SerializedProperty tagsProp = tagManager.FindProperty("tags");
-        for (int i = 0; i < tagsProp.arraySize; i++)
+        PMHelper.TurnCollisions(false);
+        
+        if (!Application.CanStreamedLevelBeLoaded("Level 3"))
         {
-            SerializedProperty t = tagsProp.GetArrayElementAtIndex(i);
-            if (t.stringValue.Equals("Gem"))
-            {
-                GemTagExist = true;
-                break;
-            }
+            Assert.Fail("\"Level 3\" scene is misspelled or was not added to build settings");
         }
+        
+        SceneManager.LoadScene("Level 3");
 
-        if (!GemTagExist)
+        float start = Time.unscaledTime;
+        yield return new WaitUntil(() =>
+            SceneManager.GetActiveScene().name == "Level 3" || (Time.unscaledTime - start) * Time.timeScale > 1);
+        if (SceneManager.GetActiveScene().name != "Level 3")
+        {
+            Assert.Fail("\"Level 3\" scene can't be loaded");
+        }
+        
+        if (!PMHelper.CheckTagExistance("Gem"))
         {
             Assert.Fail(" Level 3: \"Gem\" tag was not added to project");
         }
-
-        Time.timeScale = 0;
-        PMHelper.TurnCollisions(false);
-        SceneManager.LoadScene("Level 3");
-        yield return null;
-
-        GameObject helperObj = new GameObject();
-        StageHelper helper = helperObj.AddComponent<StageHelper>();
-        yield return null;
-        helper.RemovePlatforms();
-        helper.RemoveEnemies();
-        yield return null;
-
-        levelEnd = GameObject.Find("LevelEnd");
-        yield return null;
-        levelEndCl = PMHelper.Exist<Collider2D>(levelEnd);
-        levelEndCl.enabled = false;
-        PMHelper.TurnCollisions(true);
-        yield return null;
-
-        player = GameObject.Find("Player");
-
         gem = GameObject.FindWithTag("Gem");
-        yield return null;
+        
         if (!gem)
         {
             Assert.Fail(" Level 3: Gems were not added to a scene or their tag is misspelled");
         }
 
         GameObject[] gems = GameObject.FindGameObjectsWithTag("Gem");
-        yield return null;
+        
         if (gems.Length != 3)
         {
-            Assert.Fail(" Level 3: There should be three gems in scene");
+            Assert.Fail(" Level 3: There should be exactly three gems in scene");
         }
 
         gemSR = PMHelper.Exist<SpriteRenderer>(gem);
@@ -267,7 +261,6 @@ public class Stage5_3_Tests
             Assert.Fail(" Level 3: There should be sprite, attached to \"Gem\" objects' <SpriteRenderer>");
 
         GameObject background = GameObject.Find("Background");
-        yield return null;
         SpriteRenderer backgroundSR = PMHelper.Exist<SpriteRenderer>(background);
 
         if (backgroundSR.sortingLayerID != gemSR.sortingLayerID)
@@ -293,28 +286,20 @@ public class Stage5_3_Tests
             Assert.Fail(" Level 3: \"Gem\" objects's <Collider2D> component should be triggerable");
         }
 
-        gemCL.enabled = false;
-
         gemAnim = PMHelper.Exist<Animator>(gem);
-        if (gemAnim == null)
+        if (!gemAnim)
         {
             Assert.Fail(" Level 3: There is no attached <Animator> component to gems");
         }
 
-        yield return null;
         gemAclips = gemAnim.runtimeAnimatorController.animationClips;
-    }
-
-    [UnityTest, Order(5)]
-    public IEnumerator CheckGemAnimationClips()
-    {
+    
         if (gemAclips.Length != 1)
         {
-            Assert.Fail(" Level 3: There should be added 1 clip to Gem's animator, called \"Gem\"");
+            Assert.Fail(" Level 3: There should be added only 1 clip to Gem's animator, called \"Gem\"");
         }
 
         gemClip = Array.Find(gemAclips, clip => clip.name.Equals("Gem"));
-        yield return null;
 
         if (gemClip == null) Assert.Fail(" Level 3: There should be a clip in Gem's animator, called \"Gem\"");
         if (gemClip.legacy)
@@ -327,7 +312,6 @@ public class Stage5_3_Tests
     [UnityTest, Order(6)]
     public IEnumerator CheckTransitionsIdle()
     {
-        Time.timeScale = 10;
         float start = Time.unscaledTime;
         yield return new WaitUntil(() =>
             gemAnim.GetCurrentAnimatorClipInfo(0)[0].clip.name == "Gem" ||
@@ -341,19 +325,12 @@ public class Stage5_3_Tests
     [UnityTest, Order(7)]
     public IEnumerator CheckDestroying()
     {
-        gem.transform.position = (Vector2) levelEnd.transform.position + levelEndCl.offset;
-        levelEndCl.enabled = true;
-        yield return new WaitForSeconds(0.1f);
-        if (!gem)
-        {
-            Assert.Fail(" Level 3: Gems should not be destroyed when colliding with anything except \"Player\"");
-        }
-
+        player = GameObject.Find("Player");
         gem.transform.position = player.transform.position;
-        gemCL.enabled = true;
+        PMHelper.TurnCollisions(true);
         float start = Time.unscaledTime;
         yield return new WaitUntil(() =>
-            gem == null || (Time.unscaledTime - start) * Time.timeScale > 1);
+            !gem || (Time.unscaledTime - start) * Time.timeScale > 1);
         if ((Time.unscaledTime - start) * Time.timeScale >= 1)
         {
             Assert.Fail(" Level 3: Gems should be destroyed when colliding with Player");
