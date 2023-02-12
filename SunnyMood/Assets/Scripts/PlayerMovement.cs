@@ -18,12 +18,7 @@ public class PlayerMovement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if(Input.GetKeyUp(KeyCode.Space))
-            spacePressed = false;
-        if (Input.GetKeyDown(KeyCode.Space))
-            spacePressed = true;
-        
-        if (spacePressed&&!playerOnTheJump)
+        if (Input.GetKeyDown(KeyCode.Space)&&!playerOnTheJump)
         {
             playerOnTheJump = true;
             r.AddForce(new Vector2(0, 300));
