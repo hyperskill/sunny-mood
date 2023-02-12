@@ -143,7 +143,7 @@ public class Stage2_Tests
         start = Time.unscaledTime;
         yield return new WaitUntil(() =>
             playerRB.velocity.x != 0 || (Time.unscaledTime - start) * Time.timeScale > 3);
-        if (playerRB.velocity.x != 0)
+        if (playerRB.velocity.x == 0)
         {
             Assert.Fail("Level 1: \"Player\"'s horizontal movement should be implemented by changing x-axis velocity");
         }
