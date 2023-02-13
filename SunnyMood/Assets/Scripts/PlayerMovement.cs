@@ -26,7 +26,7 @@ public class PlayerMovement : MonoBehaviour
         {
             playerOnTheJump = true;
             animator.SetBool("Jump", playerOnTheJump);
-            r.AddForce(new Vector2(0, 300));
+            r.AddForce(new Vector2(0, 400));
         }
         
     }
@@ -46,7 +46,7 @@ public class PlayerMovement : MonoBehaviour
     }
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        if (collision.collider.name == "Ground")
+        if (collision.collider.name == "Ground"||collision.collider.tag=="Platform")
         {
             if (collision.collider.bounds.min.y < transform.position.y)
             {

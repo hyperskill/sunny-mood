@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Bounds
   - Gem
+  - Platform
   layers:
   - Default
   - TransparentFX
