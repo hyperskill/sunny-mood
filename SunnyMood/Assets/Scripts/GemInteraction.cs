@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class GemInteraction : MonoBehaviour
 {
+    public AudioSource pickGemAudio;
     // Start is called before the first frame update
     void Start()
     {
@@ -20,6 +21,7 @@ public class GemInteraction : MonoBehaviour
         if (other.name == "Player")
         {
             Destroy(gameObject);
+            pickGemAudio.Play();
         }
     }
 }

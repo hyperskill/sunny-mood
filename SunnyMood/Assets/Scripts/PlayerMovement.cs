@@ -5,6 +5,8 @@ using UnityEngine.SceneManagement;
 
 public class PlayerMovement : MonoBehaviour
 {
+    public AudioSource jumpAudio;
+    public AudioSource pickGemAudio;
     private Rigidbody2D r;
     private SpriteRenderer sr;
     private bool playerOnTheJump = false;
@@ -29,6 +31,7 @@ public class PlayerMovement : MonoBehaviour
         }
         if (Input.GetKeyDown(KeyCode.Space)&&!playerOnTheJump)
         {
+            jumpAudio.Play();
             playerOnTheJump = true;
             animator.SetBool("Jump", playerOnTheJump);
             r.AddForce(new Vector2(0, 400));
