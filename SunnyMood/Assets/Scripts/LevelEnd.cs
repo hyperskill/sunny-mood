@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -18,10 +19,15 @@ public class LevelEnd : MonoBehaviour
     }
     private void OnTriggerEnter2D(Collider2D other)
     {
-        //print("Door collision");
         if (other.name == "Player")
         {
-            SceneManager.LoadScene("Level 1");
+            int currentLevel = Convert.ToInt32(SceneManager.GetActiveScene().name.Split()[1]) + 1;
+            PlayerPrefs.SetInt("currentLevel", currentLevel);
+            PlayerPrefs.Save();
+            if(currentLevel<=3)
+                SceneManager.LoadScene("Level "+currentLevel.ToString());
+            else
+                SceneManager.LoadScene("Main Menu");
         }
     }
 }
