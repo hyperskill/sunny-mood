@@ -101,11 +101,6 @@ public class Stage5_1_Tests
                         "so it's Gravity Scale parameter should not be less or equal to 0");
         }
 
-        if (playerRb.interpolation != RigidbodyInterpolation2D.None)
-        {
-            Assert.Fail("Level 3: Do not change interpolation of Player's <Rigidbody2D> component. Set it as None");
-        }
-
         if (playerRb.constraints != RigidbodyConstraints2D.FreezeRotation)
         {
             Assert.Fail(

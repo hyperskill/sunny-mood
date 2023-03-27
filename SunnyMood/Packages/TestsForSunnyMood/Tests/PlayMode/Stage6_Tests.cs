@@ -217,8 +217,8 @@ public class Stage6_Tests
 
             if (level1Button.interactable != i1 || level2Button.interactable != i2 || level3Button.interactable != i3)
             {
-                Assert.Fail("From \"Main Menu\"'s ChooseLevel panel, player should be able to choose between levels," +
-                            " that he had already passed and the one, that is next, others should be non-interactable");
+                Assert.Fail("From \"Main Menu\"'s ChooseLevel panel, player should be able to choose between levels" +
+                            " that he had already passed and the one that is next, others should be non-interactable");
             }
         }
 
